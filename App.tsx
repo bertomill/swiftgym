@@ -1,25 +1,52 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import Dashboard from './components/Dashboard';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AppWithNavigation from './components/AppWithNavigation';
 import SplashScreen from './components/SplashScreen';
+import ModernAuthScreen from './components/ModernAuthScreen';
+import { AuthUser } from './services/auth';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
-type AppState = 'splash' | 'dashboard' | 'login' | 'signup';
+type AppState = 'splash' | 'dashboard' | 'auth';
 
-export default function App() {
+function AppContent() {
+  const { user, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<AppState>('splash');
 
+  // Show loading spinner while checking auth state
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#333" />
+      </View>
+    );
+  }
+
+  // If user is authenticated, show dashboard with navigation
+  if (user) {
+    return <AppWithNavigation />;
+  }
+
   const handleLogin = () => {
-    // For now, navigate to dashboard - you can implement proper login later
-    setCurrentScreen('dashboard');
+    setCurrentScreen('auth');
   };
 
   const handleCreateAccount = () => {
-    // For now, navigate to dashboard - you can implement proper signup later
-    setCurrentScreen('dashboard');
+    setCurrentScreen('auth');
   };
 
   const handleContinueAsGuest = () => {
     setCurrentScreen('dashboard');
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    // User is now authenticated, the useAuth hook will automatically
+    // detect this and show the dashboard
+    setCurrentScreen('dashboard');
+  };
+
+  const handleGoBack = () => {
+    setCurrentScreen('splash');
   };
 
   const renderCurrentScreen = () => {
@@ -32,9 +59,16 @@ export default function App() {
             onContinueAsGuest={handleContinueAsGuest}
           />
         );
+      case 'auth':
+        return (
+          <ModernAuthScreen
+            onAuthSuccess={handleAuthSuccess}
+            onGoBack={handleGoBack}
+          />
+        );
       case 'dashboard':
       default:
-        return <Dashboard />;
+        return <AppWithNavigation />;
     }
   };
 
@@ -45,3 +79,21 @@ export default function App() {
     </>
   );
 }
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});
+

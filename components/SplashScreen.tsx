@@ -18,17 +18,13 @@ interface SplashScreenProps {
 }
 
 export default function SplashScreen({ onLogin, onCreateAccount, onContinueAsGuest }: SplashScreenProps) {
-  // For now, we'll use a gradient-like background color
-  // You can replace this with an ImageBackground once you add your image
   return (
     <View style={styles.container}>
-      {/* TODO: Replace this View with ImageBackground once you add your image:
-          <ImageBackground
-            source={require('../assets/splash-bg.jpg')}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          > */}
-      <View style={styles.backgroundFallback}>
+      <ImageBackground
+        source={require('../assets/splash.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
         {/* Dark overlay for better text readability */}
         <View style={styles.overlay} />
         
@@ -54,8 +50,7 @@ export default function SplashScreen({ onLogin, onCreateAccount, onContinueAsGue
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </View>
-      {/* </ImageBackground> */}
+      </ImageBackground>
     </View>
   );
 }
@@ -69,14 +64,9 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
-  backgroundFallback: {
-    flex: 1,
-    backgroundColor: '#1a1a1a', // Dark gym-like background
-    // You can also use a gradient here if you prefer
-  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Subtle overlay for text contrast
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Dark overlay for better text contrast
   },
   content: {
     flex: 1,
@@ -111,8 +101,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   actionsContainer: {
-    width: '100%',
     gap: 16,
+    marginHorizontal: 20,
   },
   loginButton: {
     backgroundColor: '#FFFFFF',

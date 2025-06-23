@@ -1,3 +1,25 @@
+/*
+What is a Database Service?
+A Database Service is a centralized class/module that handles all database operations in an application.
+It acts as an abstraction layer between the application and the database (in this case Firestore),
+providing a clean API for data access and manipulation.
+
+Why is it called a Database Service?
+It's called a Database Service because it:
+1. Services all database-related requests from the application
+2. Provides database operations as a "service" to other parts of the app
+3. Follows the Service Layer pattern in software architecture
+
+Why is a Database Service helpful?
+1. Abstraction - Hides complex database logic from components
+2. Reusability - Database operations can be reused across the app
+3. Type Safety - Provides TypeScript interfaces for data models
+4. Error Handling - Centralizes database error handling
+5. Maintainability - Database changes only need to be made in one place
+6. Consistency - Ensures data is accessed/modified consistently
+7. Testing - Makes it easier to mock database operations for tests
+*/
+
 import { 
   collection, 
   doc, 

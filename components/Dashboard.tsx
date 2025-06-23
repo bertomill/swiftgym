@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Image,
+  Dimensions,
 } from 'react-native';
 import {
   getEquipmentCategories,
@@ -18,19 +19,50 @@ import {
   EquipmentCategory,
   Booking,
 } from '../services/databaseService';
+import { useAuth } from '../contexts/AuthContext';
+import UserProfile from './UserProfile';
+import { 
+  Ionicons, 
+  MaterialIcons, 
+  FontAwesome5,
+  Feather 
+} from '@expo/vector-icons';
+
+// Get screen dimensions for responsive design
+const { width: screenWidth } = Dimensions.get('window');
+
+interface DashboardProps {
+  activeTab?: string;
+}
 
 // --- Mock Data and Services ---
 // In a real app, these would be in separate files
 
 // --- Main Component ---
-export default function Dashboard() {
+// The 'export default' keywords make this component the main export from this file
+// This means other files can import it without using curly braces, like:
+// import Dashboard from './components/Dashboard'
+export default function Dashboard({ activeTab = 'home' }: DashboardProps) {
+  const { user } = useAuth();
   const [equipmentCategories, setEquipmentCategories] = useState<EquipmentCategory[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock user ID - replace with real auth
-  const currentUserId = 'user123';
+  // Use authenticated user data
+  const currentUserId = user?.uid || 'guest';
+  const userName = (() => {
+    if (user?.displayName) {
+      // Extract first name from display name
+      return user.displayName.split(' ')[0];
+    }
+    if (user?.email) {
+      // Extract first part of email before @ and capitalize
+      const emailPrefix = user.email.split('@')[0];
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    }
+    return 'Guest';
+  })();
 
   useEffect(() => {
     // Initial data load
@@ -80,6 +112,10 @@ export default function Dashboard() {
   const formatTime = (date: Date) => 
     date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
+  const renderStars = (rating: number) => {
+    return '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+  };
+
   // --- UI Components ---
   if (loading) {
     return (
@@ -93,123 +129,203 @@ export default function Dashboard() {
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const renderMainContent = () => {
+    if (activeTab === 'profile') {
+      return (
+        <View style={styles.contentContainer}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <UserProfile />
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.contentContainer}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* --- Search Bar --- */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Feather name="search" size={20} color="#999" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="What are you looking for?"
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+          </View>
+
+          {/* --- Featured/Trending Section --- */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Trending</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+              <TouchableOpacity style={styles.trendingCard}>
+                <Image
+                  source={require('../assets/splash.png')}
+                  style={styles.trendingImage}
+                />
+                <View style={styles.trendingOverlay}>
+                  <Text style={styles.trendingTitle}>STRENGTH &{'\n'}CARDIO</Text>
+                  <Text style={styles.trendingSubtitle}>Peak hours: 6-8 AM</Text>
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.stars}>★★★★★</Text>
+                    <Text style={styles.ratingText}>4.8 (324)</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={[styles.trendingCard, styles.trendingCardSecond]}>
+                <Image
+                  source={require('../assets/splash.png')}
+                  style={styles.trendingImage}
+                />
+                <View style={styles.trendingOverlay}>
+                  <Text style={styles.trendingTitle}>FUNCTIONAL{'\n'}TRAINING</Text>
+                  <Text style={styles.trendingSubtitle}>Available now</Text>
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.stars}>★★★★☆</Text>
+                    <Text style={styles.ratingText}>4.6 (198)</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          {/* --- Equipment Categories Grid --- */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Equipment Categories</Text>
+            <View style={styles.categoriesGrid}>
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map(category => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.categoryGridCard}
+                    onPress={() => handleBookEquipment(category)}
+                  >
+                    <View style={[styles.categoryIconLarge, { backgroundColor: category.color || '#FF6B35' }]}>
+                      {category.name === 'Free Weights' ? (
+                        <FontAwesome5 name="dumbbell" size={24} color="#fff" />
+                      ) : category.name === 'Strength' ? (
+                        <MaterialIcons name="fitness-center" size={28} color="#fff" />
+                      ) : category.name === 'Cardio' ? (
+                        <FontAwesome5 name="running" size={24} color="#fff" />
+                      ) : (
+                        <MaterialIcons name="sports-gymnastics" size={28} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.categoryGridName}>{category.name}</Text>
+                    <Text style={styles.categoryGridAvailability}>
+                      {category.available}/{category.total} available
+                    </Text>
+                    <View style={styles.availabilityBar}>
+                      <View 
+                        style={[
+                          styles.availabilityFill, 
+                          { width: `${(category.available / category.total) * 100}%` }
+                        ]} 
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.emptyStateText}>No equipment categories match your search.</Text>
+              )}
+            </View>
+          </View>
+
+          {/* --- Upcoming Bookings with Enhanced Design --- */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your Bookings</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See all</Text>
+              </TouchableOpacity>
+            </View>
+            {upcomingBookings.length > 0 ? (
+              upcomingBookings.map(booking => (
+                <TouchableOpacity
+                  key={booking.id}
+                  style={styles.enhancedBookingCard}
+                  onPress={() => handleModifyBooking(booking)}
+                >
+                  <View style={styles.bookingIconContainer}>
+                    <MaterialIcons name="fitness-center" size={24} color="#FF6B35" />
+                  </View>
+                  <View style={styles.bookingDetails}>
+                    <Text style={styles.bookingEquipmentName}>{booking.equipmentName}</Text>
+                    <Text style={styles.bookingDateTime}>
+                      {formatTime(booking.startTime)} • {booking.duration} min
+                    </Text>
+                    <View style={styles.bookingMeta}>
+                      <Text style={styles.bookingLocation}>Gym Floor B</Text>
+                      <View style={styles.statusBadge}>
+                        <Text style={styles.statusText}>Confirmed</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.moreButton}>
+                    <Text style={styles.moreButtonText}>⋯</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyBookingsContainer}>
+                <MaterialIcons name="event-note" size={48} color="#999" style={{ marginBottom: 16 }} />
+                <Text style={styles.emptyBookingsTitle}>No bookings yet</Text>
+                <Text style={styles.emptyBookingsSubtitle}>Book your first session to get started</Text>
+                <TouchableOpacity style={styles.primaryButton}>
+                  <Text style={styles.primaryButtonText}>Book Now</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Add some bottom padding for navigation */}
+          <View style={styles.bottomPadding} />
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* --- Header --- */}
+      {/* --- Header with Personal Greeting --- */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>EXPLORE</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greeting}>Hey, {userName}</Text>
+          <Text style={styles.subGreeting}>Ready for your workout?</Text>
+        </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity>
-            {/* Replace with actual icon */}
-            <Text style={styles.iconPlaceholder}>🔔</Text>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={24} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity>
-            {/* Replace with actual icon */}
-            <View style={styles.profileIcon}>
-              <Text style={styles.profileIconText}>AS</Text>
-            </View>
+          <TouchableOpacity style={styles.profileIcon}>
+            <Text style={styles.profileIconText}>
+              {userName ? userName.charAt(0).toUpperCase() : 'U'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        {/* --- Search Bar --- */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="What are you looking for?"
-            placeholderTextColor="#888"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* --- Hero/Featured Card --- */}
-        <View style={styles.heroCard}>
-          <Image
-            source={require('../assets/splash.png')}
-            style={styles.heroImage}
-          />
-          <View style={styles.heroTextContainer}>
-            <Text style={styles.heroTitle}>Strength & Cardio</Text>
-            <Text style={styles.heroSubtitle}>The best equipment for a full-body workout.</Text>
-          </View>
-          <TouchableOpacity style={styles.heroButton}>
-            <Text style={styles.heroButtonText}>›</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* --- Equipment Categories --- */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Equipment Categories</Text>
-          {filteredCategories.length > 0 ? (
-            filteredCategories.map(category => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryCard}
-                onPress={() => handleBookEquipment(category)}
-              >
-                <View style={[styles.categoryIcon, { backgroundColor: category.color || '#333' }]} />
-                <View style={styles.categoryInfo}>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                  <Text style={styles.categoryAvailability}>
-                    {category.available} / {category.total} available
-                  </Text>
-                </View>
-                <Text style={styles.categoryArrow}>›</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.emptyStateText}>No equipment categories match your search.</Text>
-          )}
-        </View>
-
-        {/* --- Upcoming Bookings --- */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Upcoming Bookings</Text>
-          {upcomingBookings.length > 0 ? (
-            upcomingBookings.map(booking => (
-              <TouchableOpacity
-                key={booking.id}
-                style={styles.bookingCard}
-                onPress={() => handleModifyBooking(booking)}
-              >
-                <View style={styles.bookingInfo}>
-                  <Text style={styles.bookingEquipment}>{booking.equipmentName}</Text>
-                  <Text style={styles.bookingTime}>
-                    {formatTime(booking.startTime)} • {booking.duration} min
-                  </Text>
-                </View>
-                <View style={styles.bookingStatus}>
-                  <Text style={styles.bookingStatusText}>Confirmed</Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View style={styles.emptyStateContainer}>
-              <Text style={styles.emptyStateText}>You have no upcoming bookings.</Text>
-              <TouchableOpacity style={styles.bookNowButton}>
-                <Text style={styles.bookNowButtonText}>Book Now</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      {renderMainContent()}
     </SafeAreaView>
   );
 }
 
-// --- Styles ---
+// --- Enhanced Styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FAFAFA',
   },
   loadingText: {
     fontSize: 18,
@@ -221,184 +337,304 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: 20,
+    backgroundColor: '#fff',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#000',
+  headerLeft: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  subGreeting: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
   },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconPlaceholder: {
-    fontSize: 24,
-    marginHorizontal: 10,
+  iconButton: {
+    padding: 8,
+    marginRight: 8,
   },
   profileIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#000',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FF6B35',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
   },
   profileIconText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 16,
   },
   scrollView: {
     flex: 1,
   },
   searchContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#fff',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+  },
+  searchIcon: {
+    marginRight: 12,
   },
   searchInput: {
-    backgroundColor: '#f2f2f2',
-    padding: 15,
-    borderRadius: 12,
+    flex: 1,
+    padding: 16,
     fontSize: 16,
     fontWeight: '500',
-  },
-  heroCard: {
-    marginHorizontal: 20,
-    marginBottom: 30,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-  },
-  heroImage: {
-    width: '100%',
-    height: 220,
-    opacity: 0.6,
-  },
-  heroTextContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#fff',
-    lineHeight: 34,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#fff',
-    marginTop: 8,
-    opacity: 0.9,
-  },
-  heroButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    color: '#333',
   },
   section: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingVertical: 15,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 15,
-  },
-  categoryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    marginRight: 15,
-  },
-  categoryInfo: {
-    flex: 1,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  categoryAvailability: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  categoryArrow: {
-    fontSize: 20,
-    color: '#ccc',
-  },
-  bookingCard: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  bookingInfo: {},
-  bookingEquipment: {
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: 16,
+  },
+  seeAllText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    color: '#FF6B35',
   },
-  bookingTime: {
+  horizontalScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  trendingCard: {
+    width: screenWidth * 0.75,
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  trendingCardSecond: {
+    marginRight: 20,
+  },
+  trendingImage: {
+    width: '100%',
+    height: '100%',
+    opacity: 0.8,
+  },
+  trendingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 20,
+  },
+  trendingTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
+    lineHeight: 26,
+    marginBottom: 8,
+  },
+  trendingSubtitle: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: '#fff',
+    opacity: 0.9,
+    marginBottom: 12,
   },
-  bookingStatus: {
-    backgroundColor: '#e8f5e9', // a light green
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  bookingStatusText: {
-    color: '#4caf50',
+  stars: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#fff',
     fontWeight: '600',
   },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryGridCard: {
+    width: (screenWidth - 60) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  categoryIconLarge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  categoryGridName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  categoryGridAvailability: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  availabilityBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#E8E8E8',
+    borderRadius: 2,
+  },
+  availabilityFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  enhancedBookingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bookingIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F9FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  bookingDetails: {
+    flex: 1,
+  },
+  bookingEquipmentName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  bookingDateTime: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  bookingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bookingLocation: {
+    fontSize: 12,
+    color: '#999',
+  },
+  statusBadge: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  moreButton: {
+    padding: 8,
+  },
+  moreButtonText: {
+    fontSize: 20,
+    color: '#999',
+  },
+  emptyBookingsContainer: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyBookingsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  emptyBookingsSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  primaryButton: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
     borderRadius: 12,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
   emptyStateText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    fontStyle: 'italic',
   },
-  bookNowButton: {
-    backgroundColor: '#000',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 15,
+  bottomPadding: {
+    height: 120,
   },
-  bookNowButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+  contentContainer: {
+    flex: 1,
   },
 }); 
