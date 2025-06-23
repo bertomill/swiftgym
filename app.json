@@ -29,7 +29,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "SwiftGym - Smart Gym Booking"
+      "name": "SwiftGym - Smart Gym Booking",
+      "bundler": "metro"
     }
   }
 }
