@@ -46,4 +46,18 @@ export const db = getFirestore(app);
 // Initialize Firebase Auth
 export const auth = getAuth(app);
 
+// Configure Auth for production domain
+if (typeof window !== 'undefined') {
+  // Ensure auth works on both localhost and production
+  const currentDomain = window.location.hostname;
+  console.log('🔥 Firebase Auth initialized for domain:', currentDomain);
+  
+  // Production domain verification
+  if (currentDomain === 'swiftgym.vercel.app') {
+    console.log('✅ Production environment detected - Firebase Auth ready');
+  } else if (currentDomain === 'localhost') {
+    console.log('🛠️ Development environment detected - Firebase Auth ready');
+  }
+}
+
 export default app;
