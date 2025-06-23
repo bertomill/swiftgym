@@ -9,8 +9,8 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "resizeMode": "cover",
+      "backgroundColor": "#1a1a1a"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -30,7 +30,21 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "name": "SwiftGym - Smart Gym Booking",
-      "bundler": "metro"
-    }
+      "bundler": "metro",
+      "build": {
+        "babel": {
+          "include": ["@expo/vector-icons"]
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-asset",
+        {
+          "assets": ["./assets/splash.png"],
+          "hash": true
+        }
+      ]
+    ]
   }
 }
