@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftGym Database Seeder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ SwiftGym Database Seeder</h1>
+        <p>This will populate your Firebase database with sample gym equipment and bookings.</p>
+        
+        <button id="seedBtn" onclick="seedDatabase()">🔥 Seed Database</button>
+        <button id="clearBtn" onclick="clearDatabase()">🗑️ Clear Database</button>
+        
+        <div id="log" class="log">
+            <div class="info">Ready to seed database...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs,
+            deleteDoc,
+            doc,
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXoI3Cf1CijODsbppbjjQzUdx-yBX9ujU",
+            authDomain: "swiftgym-6d5ca.firebaseapp.com",
+            projectId: "swiftgym-6d5ca",
+            storageBucket: "swiftgym-6d5ca.firebasestorage.app",
+            messagingSenderId: "815902613445",
+            appId: "1:815902613445:web:0ee784af1b43c6bab775ac",
+            measurementId: "G-WWVG0SW4LV"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Equipment data
+        const equipmentData = [
+            // Cardio (12 total, 8 available)
+            { name: 'Treadmill 1', category: 'Cardio', isAvailable: true },
+            { name: 'Treadmill 2', category: 'Cardio', isAvailable: true },
+            { name: 'Treadmill 3', category: 'Cardio', isAvailable: false, currentUserId: 'user456' },
+            { name: 'Treadmill 4', category: 'Cardio', isAvailable: true },
+            { name: 'Elliptical 1', category: 'Cardio', isAvailable: true },
+            { name: 'Elliptical 2', category: 'Cardio', isAvailable: false, currentUserId: 'user789' },
+            { name: 'Elliptical 3', category: 'Cardio', isAvailable: true },
+            { name: 'Stationary Bike 1', category: 'Cardio', isAvailable: true },
+            { name: 'Stationary Bike 2', category: 'Cardio', isAvailable: true },
+            { name: 'Stationary Bike 3', category: 'Cardio', isAvailable: false, currentUserId: 'user111' },
+            { name: 'Rowing Machine 1', category: 'Cardio', isAvailable: true },
+            { name: 'Rowing Machine 2', category: 'Cardio', isAvailable: false, currentUserId: 'user999' },
+
+            // Strength (20 total, 15 available)
+            { name: 'Bench Press 1', category: 'Strength', isAvailable: true },
+            { name: 'Bench Press 2', category: 'Strength', isAvailable: true },
+            { name: 'Bench Press 3', category: 'Strength', isAvailable: false, currentUserId: 'user222' },
+            { name: 'Squat Rack 1', category: 'Strength', isAvailable: true },
+            { name: 'Squat Rack 2', category: 'Strength', isAvailable: true },
+            { name: 'Squat Rack 3', category: 'Strength', isAvailable: true },
+            { name: 'Lat Pulldown 1', category: 'Strength', isAvailable: true },
+            { name: 'Lat Pulldown 2', category: 'Strength', isAvailable: false, currentUserId: 'user333' },
+            { name: 'Cable Machine 1', category: 'Strength', isAvailable: true },
+            { name: 'Cable Machine 2', category: 'Strength', isAvailable: true },
+            { name: 'Cable Machine 3', category: 'Strength', isAvailable: true },
+            { name: 'Leg Press 1', category: 'Strength', isAvailable: true },
+            { name: 'Leg Press 2', category: 'Strength', isAvailable: true },
+            { name: 'Smith Machine 1', category: 'Strength', isAvailable: true },
+            { name: 'Smith Machine 2', category: 'Strength', isAvailable: true },
+            { name: 'Shoulder Press 1', category: 'Strength', isAvailable: true },
+            { name: 'Shoulder Press 2', category: 'Strength', isAvailable: false, currentUserId: 'user888' },
+            { name: 'Chest Fly Machine', category: 'Strength', isAvailable: true },
+            { name: 'Leg Curl Machine', category: 'Strength', isAvailable: false, currentUserId: 'user777' },
+            { name: 'Leg Extension Machine', category: 'Strength', isAvailable: false, currentUserId: 'user666' },
+
+            // Free Weights (10 total, 6 available)
+            { name: 'Dumbbells 5-50lbs', category: 'Free Weights', isAvailable: true },
+            { name: 'Dumbbells 55-100lbs', category: 'Free Weights', isAvailable: true },
+            { name: 'Barbell Station 1', category: 'Free Weights', isAvailable: true },
+            { name: 'Barbell Station 2', category: 'Free Weights', isAvailable: false, currentUserId: 'user444' },
+            { name: 'Kettlebell Set 1', category: 'Free Weights', isAvailable: true },
+            { name: 'Kettlebell Set 2', category: 'Free Weights', isAvailable: true },
+            { name: 'Olympic Plates Area 1', category: 'Free Weights', isAvailable: true },
+            { name: 'Olympic Plates Area 2', category: 'Free Weights', isAvailable: false, currentUserId: 'user555' },
+            { name: 'EZ Curl Bar Station', category: 'Free Weights', isAvailable: false, currentUserId: 'user321' },
+            { name: 'Cable Crossover', category: 'Free Weights', isAvailable: false, currentUserId: 'user654' },
+
+            // Functional (6 total, 4 available)
+            { name: 'TRX Station 1', category: 'Functional', isAvailable: true },
+            { name: 'TRX Station 2', category: 'Functional', isAvailable: true },
+            { name: 'Battle Ropes', category: 'Functional', isAvailable: true },
+            { name: 'Agility Ladder Area', category: 'Functional', isAvailable: true },
+            { name: 'Medicine Ball Area', category: 'Functional', isAvailable: false, currentUserId: 'user101' },
+            { name: 'Plyometric Box Area', category: 'Functional', isAvailable: false, currentUserId: 'user202' }
+        ];
+
+        // Utility functions
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function setButtonState(enabled) {
+            document.getElementById('seedBtn').disabled = !enabled;
+            document.getElementById('clearBtn').disabled = !enabled;
+        }
+
+        // Seed database function
+        window.seedDatabase = async function() {
+            setButtonState(false);
+            log('🔥 Starting SwiftGym database seeding...', 'info');
+
+            try {
+                // Add equipment
+                log('📋 Adding gym equipment...', 'info');
+                const equipmentIds = {};
+                
+                for (const equipment of equipmentData) {
+                    const docRef = await addDoc(collection(db, 'equipment'), {
+                        ...equipment,
+                        lastUpdated: serverTimestamp()
+                    });
+                    equipmentIds[equipment.name] = docRef.id;
+                    log(`✅ Added ${equipment.name}`, 'success');
+                }
+
+                // Add sample bookings for user123
+                log('📅 Adding sample bookings...', 'info');
+                const bookings = [
+                    {
+                        userId: 'user123',
+                        equipmentId: equipmentIds['Treadmill 1'],
+                        equipmentName: 'Treadmill 1',
+                        startTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
+                        endTime: new Date(Date.now() + 2.5 * 60 * 60 * 1000),
+                        duration: 30,
+                        status: 'upcoming',
+                        createdAt: new Date()
+                    },
+                    {
+                        userId: 'user123',
+                        equipmentId: equipmentIds['Bench Press 2'],
+                        equipmentName: 'Bench Press 2',
+                        startTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
+                        endTime: new Date(Date.now() + 4.75 * 60 * 60 * 1000),
+                        duration: 45,
+                        status: 'upcoming',
+                        createdAt: new Date()
+                    }
+                ];
+
+                for (const booking of bookings) {
+                    await addDoc(collection(db, 'bookings'), booking);
+                    log(`✅ Added booking for ${booking.equipmentName}`, 'success');
+                }
+
+                log('🎉 Database seeding complete!', 'success');
+                log('📊 Summary: 48 equipment items + 2 bookings added', 'success');
+                log('🔄 Refresh your SwiftGym app to see live data!', 'info');
+
+            } catch (error) {
+                log(`❌ Error seeding database: ${error.message}`, 'error');
+            } finally {
+                setButtonState(true);
+            }
+        };
+
+        // Clear database function
+        window.clearDatabase = async function() {
+            if (!confirm('Are you sure you want to clear all data?')) return;
+            
+            setButtonState(false);
+            log('🗑️ Clearing database...', 'info');
+
+            try {
+                // Clear equipment
+                const equipmentSnapshot = await getDocs(collection(db, 'equipment'));
+                for (const docSnapshot of equipmentSnapshot.docs) {
+                    await deleteDoc(doc(db, 'equipment', docSnapshot.id));
+                }
+                log(`✅ Cleared ${equipmentSnapshot.size} equipment items`, 'success');
+
+                // Clear bookings
+                const bookingsSnapshot = await getDocs(collection(db, 'bookings'));
+                for (const docSnapshot of bookingsSnapshot.docs) {
+                    await deleteDoc(doc(db, 'bookings', docSnapshot.id));
+                }
+                log(`✅ Cleared ${bookingsSnapshot.size} bookings`, 'success');
+
+                log('🧹 Database cleared successfully!', 'success');
+            } catch (error) {
+                log(`❌ Error clearing database: ${error.message}`, 'error');
+            } finally {
+                setButtonState(true);
+            }
+        };
+
+        log('🚀 SwiftGym Database Seeder ready!', 'success');
+    </script>
+</body>
+</html> 
