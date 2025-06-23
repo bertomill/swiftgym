@@ -26,16 +26,31 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// SwiftGym Firebase Configuration
+// SwiftGym Firebase Configuration using Environment Variables
 const firebaseConfig = {
-  apiKey: "AIzaSyBXoI3Cf1CijODsbppbjjQzUdx-yBX9ujU",
-  authDomain: "swiftgym-6d5ca.firebaseapp.com",
-  projectId: "swiftgym-6d5ca",
-  storageBucket: "swiftgym-6d5ca.firebasestorage.app",
-  messagingSenderId: "815902613445",
-  appId: "1:815902613445:web:0ee784af1b43c6bab775ac",
-  measurementId: "G-WWVG0SW4LV"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
+
+// Validate that all required environment variables are present
+const requiredEnvVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID'
+];
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -51,6 +66,7 @@ if (typeof window !== 'undefined') {
   // Ensure auth works on both localhost and production
   const currentDomain = window.location.hostname;
   console.log('🔥 Firebase Auth initialized for domain:', currentDomain);
+  console.log('🔧 Using Firebase project:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
   
   // Production domain verification
   if (currentDomain === 'swiftgym.vercel.app') {
