@@ -10,6 +10,7 @@ import {
   TextInput,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
 import {
   getEquipmentCategories,
@@ -43,11 +44,12 @@ interface DashboardProps {
 // This means other files can import it without using curly braces, like:
 // import Dashboard from './components/Dashboard'
 export default function Dashboard({ activeTab = 'home' }: DashboardProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [equipmentCategories, setEquipmentCategories] = useState<EquipmentCategory[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // Use authenticated user data
   const currentUserId = user?.uid || 'guest';
@@ -107,6 +109,34 @@ export default function Dashboard({ activeTab = 'home' }: DashboardProps) {
 
   const handleModifyBooking = (booking: Booking) => {
     Alert.alert('Modify Booking', `Update booking for ${booking.equipmentName}?`);
+  };
+
+  const handleLogout = async () => {
+    try {
+      setShowProfileDropdown(false);
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
+  };
+
+  const handleEditProfile = () => {
+    setShowProfileDropdown(false);
+    // Navigate to profile edit screen or show profile modal
+    Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+  };
+
+  const handleSettings = () => {
+    setShowProfileDropdown(false);
+    // Navigate to settings screen
+    Alert.alert('Settings', 'Settings feature coming soon!');
+  };
+
+  const handleHelpSupport = () => {
+    setShowProfileDropdown(false);
+    // Navigate to help screen or open support
+    Alert.alert('Help & Support', 'Need help? Contact us at support@swiftgym.com');
   };
 
   const formatTime = (date: Date) => 
@@ -302,7 +332,7 @@ export default function Dashboard({ activeTab = 'home' }: DashboardProps) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={24} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileIcon}>
+          <TouchableOpacity style={styles.profileIcon} onPress={() => setShowProfileDropdown(true)}>
             <Text style={styles.profileIconText}>
               {userName ? userName.charAt(0).toUpperCase() : 'U'}
             </Text>
@@ -311,6 +341,59 @@ export default function Dashboard({ activeTab = 'home' }: DashboardProps) {
       </View>
 
       {renderMainContent()}
+
+      {showProfileDropdown && (
+        <Modal
+          visible={showProfileDropdown}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setShowProfileDropdown(false)}
+        >
+          <TouchableOpacity 
+            style={styles.dropdownOverlay} 
+            activeOpacity={1}
+            onPress={() => setShowProfileDropdown(false)}
+          >
+            <View style={styles.dropdownContainer}>
+              <View style={styles.dropdownHeader}>
+                <View style={styles.dropdownProfileIcon}>
+                  <Text style={styles.dropdownProfileText}>
+                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                  </Text>
+                </View>
+                <View style={styles.dropdownUserInfo}>
+                  <Text style={styles.dropdownUserName}>{userName}</Text>
+                  <Text style={styles.dropdownUserEmail}>{user?.email || 'guest@swiftgym.com'}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.dropdownDivider} />
+              
+              <TouchableOpacity style={styles.dropdownOption} onPress={handleEditProfile}>
+                <Ionicons name="person-outline" size={20} color="#333" />
+                <Text style={styles.dropdownOptionText}>Edit Profile</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.dropdownOption} onPress={handleSettings}>
+                <Ionicons name="settings-outline" size={20} color="#333" />
+                <Text style={styles.dropdownOptionText}>Settings</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.dropdownOption} onPress={handleHelpSupport}>
+                <Ionicons name="help-circle-outline" size={20} color="#333" />
+                <Text style={styles.dropdownOptionText}>Help & Support</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.dropdownDivider} />
+              
+              <TouchableOpacity style={[styles.dropdownOption, styles.logoutOption]} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={20} color="#FF4444" />
+                <Text style={[styles.dropdownOptionText, styles.logoutText]}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -636,5 +719,83 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 80,
+    paddingRight: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#F8F8F8',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  dropdownProfileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  dropdownProfileText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  dropdownUserInfo: {
+    flex: 1,
+  },
+  dropdownUserName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 2,
+  },
+  dropdownUserEmail: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#E5E5E5',
+    marginHorizontal: 0,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingHorizontal: 20,
+  },
+  dropdownOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginLeft: 12,
+  },
+  logoutOption: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  logoutText: {
+    color: '#FF4444',
   },
 }); 
