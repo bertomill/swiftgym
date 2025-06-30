@@ -26,31 +26,19 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// SwiftGym Firebase Configuration using Environment Variables
+// SwiftGym Firebase Configuration with Environment Variables and Fallbacks
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBXoI3Cf1CijODsbppbjjQzUdx-yBX9ujU",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "swiftgym-6d5ca.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "swiftgym-6d5ca",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "swiftgym-6d5ca.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "815902613445",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:815902613445:web:0ee784af1b43c6bab775ac",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-WWVG0SW4LV"
 };
 
-// Validate that all required environment variables are present
-const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'NEXT_PUBLIC_FIREBASE_APP_ID'
-];
-
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
+// Check if we're using environment variables or fallbacks
+const usingEnvVars = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -66,7 +54,12 @@ if (typeof window !== 'undefined') {
   // Ensure auth works on both localhost and production
   const currentDomain = window.location.hostname;
   console.log('🔥 Firebase Auth initialized for domain:', currentDomain);
-  console.log('🔧 Using Firebase project:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  console.log('🔧 Using Firebase project:', firebaseConfig.projectId);
+  console.log('⚙️ Using environment variables:', usingEnvVars ? '✅ Yes' : '⚠️ No (using fallbacks)');
+  
+  if (!usingEnvVars) {
+    console.warn('⚠️ SECURITY WARNING: Using hardcoded Firebase config. Please set up environment variables in Vercel!');
+  }
   
   // Production domain verification
   if (currentDomain === 'swiftgym.vercel.app') {
